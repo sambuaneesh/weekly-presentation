@@ -1,0 +1,6 @@
+node_modules/
+site/dist/
+# Generated from weekly-presentation.tldraw at build time
+site/src/deck.json
+.env
+.env.local
