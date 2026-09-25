@@ -1,14 +1,14 @@
 // The presentation pack running on the web: the same board script the desktop app runs
 // (config.js for UI + present tool, main.js for deck sync), fed by a snapshot of the deck.
 // With ?room=<name> (and a sync server configured) the deck is shared live; see live.jsx.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Tldraw, inlineBase64AssetStore } from 'tldraw'
 import { useSync } from '@tldraw/sync'
 import 'tldraw/tldraw.css'
 import packConfig from '@pack/config.js'
 import runPackMain from '@pack/main.js'
 import deck from './deck.json'
-import { SYNC_URL, roomId, seedFromDeck, useLiveRoom, LiveBar, slideCount } from './live.jsx'
+import { SYNC_URL, roomId, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomExists, RoomNotFound } from './live.jsx'
 
 const pack = packConfig({
 	config: { shapeUtils: [], bindingUtils: [], assetUtils: [], overlayUtils: [], tools: [], components: {}, options: {} },
@@ -55,6 +55,16 @@ function Live() {
 	)
 }
 
+// Only connect to rooms that were opened with the room password.
+function LiveGate() {
+	const [state, setState] = useState('checking')
+	useEffect(() => {
+		roomExists(roomId).then((exists) => setState(exists ? 'open' : 'missing'), () => setState('missing'))
+	}, [])
+	if (state === 'checking') return null
+	return state === 'open' ? <Live /> : <RoomNotFound />
+}
+
 export default function App() {
-	return <div style={{ position: 'fixed', inset: 0 }}>{roomId && SYNC_URL ? <Live /> : <Solo />}</div>
+	return <div style={{ position: 'fixed', inset: 0 }}>{roomId && SYNC_URL ? <LiveGate /> : <Solo />}</div>
 }

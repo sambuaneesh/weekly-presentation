@@ -22,7 +22,9 @@ The published deck only changes when you push.
 
 ## Live rooms (present to several devices)
 
-Click **● Go live** on the site (or add `?room=<name>` to the URL) and share the link. Everyone in
+Click **● Go live** on the site, enter the room password (and optionally a room name such as
+`weekly`), then **Copy link** and share it. Only starting a room needs the password; anyone with
+the link can join. A link to a room that was never started shows "Room not found". Everyone in
 the room sees the same deck, each other's cursors, the presenter's laser and highlights. When
 someone presses **▶ Present**, everyone else follows their slides automatically (Esc stops
 following). A new room starts as a copy of the published deck; **Reset to deck** reloads it.
@@ -34,7 +36,11 @@ cd sync-worker
 npm install
 npx wrangler login      # opens the browser to sign in to Cloudflare
 npx wrangler deploy     # prints the URL, e.g. https://weekly-presentation-sync.<you>.workers.dev
+npx wrangler secret put ROOM_PASSWORD   # the password for starting rooms (prompts for it)
 ```
+
+Change the password any time by running `npx wrangler secret put ROOM_PASSWORD` again. Rooms that
+are already open stay open. Until the secret is set, no new rooms can be started.
 
 Then add that URL as the repository **variable** `VITE_SYNC_URL` (Settings → Secrets and
 variables → Actions → Variables) and re-run the deploy. The server only accepts connections from
@@ -49,7 +55,8 @@ npm install
 npm run dev        # exports the deck, then serves at http://localhost:5173
 ```
 
-For live rooms locally, run `npx wrangler dev --port 8799` in `sync-worker/` and start the site
+For live rooms locally, put `ROOM_PASSWORD=<anything>` in `sync-worker/.dev.vars` (gitignored),
+run `npx wrangler dev --port 8799` in `sync-worker/`, and start the site
 with `VITE_SYNC_URL=http://localhost:8799 npm run dev`.
 
 `npm run build` writes the static site to `site/dist/`. The export needs Node 22.13 or newer.

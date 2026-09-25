@@ -1,5 +1,7 @@
-// From tldraw's MIT-licensed sync template (https://github.com/tldraw/tldraw-sync-cloudflare),
-// unchanged apart from this note and the env type: hosts one room's document and websocket sessions.
+// From tldraw's MIT-licensed sync template (https://github.com/tldraw/tldraw-sync-cloudflare):
+// hosts one room's document and websocket sessions. Changes from the template: the env type, and
+// rooms must be opened (POST /open, which the worker only forwards after checking the room
+// password) before anyone can connect, so a random room link can't create a room.
 import {
 	DurableObjectSqliteSyncWrapper,
 	type SessionStateSnapshot,
@@ -85,10 +87,17 @@ export class TldrawDurableObject extends DurableObject {
 		return this.room
 	}
 
-	private readonly router = AutoRouter({ catch: (e) => error(e) }).get(
-		'/api/connect/:roomId',
-		(request) => this.handleConnect(request)
-	)
+	private readonly router = AutoRouter({ catch: (e) => error(e) })
+		.get('/api/connect/:roomId', (request) => this.handleConnect(request))
+		.get('/api/rooms/:roomId', async () => Response.json({ exists: await this.isOpen() }))
+		.post('/api/rooms/:roomId/open', async () => {
+			await this.ctx.storage.put('opened', true)
+			return Response.json({ exists: true })
+		})
+
+	private isOpen() {
+		return this.ctx.storage.get('opened').then(Boolean)
+	}
 
 	// Entry point for all requests to the Durable Object
 	fetch(request: Request): Response | Promise<Response> {
@@ -99,6 +108,7 @@ export class TldrawDurableObject extends DurableObject {
 	async handleConnect(request: IRequest) {
 		const sessionId = request.query.sessionId as string
 		if (!sessionId) return error(400, 'Missing sessionId')
+		if (!(await this.isOpen())) return error(404, 'Room not found')
 
 		// Create the websocket pair for the client
 		const { 0: clientWebSocket, 1: serverWebSocket } = new WebSocketPair()

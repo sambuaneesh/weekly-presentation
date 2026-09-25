@@ -78,7 +78,50 @@ export function useLiveRoom(editor) {
 }
 
 function newRoomId() {
-	return Math.random().toString(36).slice(2, 8)
+	return crypto.getRandomValues(new Uint32Array(2)).reduce((a, n) => a + n.toString(36), '').slice(0, 10)
+}
+
+// Rooms must be opened with the room password (checked by the sync server) before anyone can join.
+export async function roomExists(id) {
+	const r = await fetch(`${SYNC_URL}/api/rooms/${id}`)
+	if (!r.ok) throw new Error(`sync server: ${r.status}`)
+	return (await r.json()).exists
+}
+
+async function openRoom(id, password) {
+	const r = await fetch(`${SYNC_URL}/api/rooms/${id}/open`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ password }),
+	})
+	if (r.status === 401) throw new Error('Wrong password')
+	if (!r.ok) throw new Error(`Could not open the room (${r.status})`)
+}
+
+function GoLiveForm({ editor, onCancel }) {
+	const [password, setPassword] = useState('')
+	const [name, setName] = useState('')
+	const [status, setStatus] = useState(null) // null | 'busy' | error message
+	const submit = async (e) => {
+		e.preventDefault()
+		const id = name.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || newRoomId()
+		setStatus('busy')
+		try {
+			await openRoom(id, password)
+			location.href = roomUrl(id)
+		} catch (err) {
+			setStatus(err.message)
+		}
+	}
+	return h('form', { onSubmit: submit, style: { display: 'flex', flexDirection: 'column', gap: 8, padding: 10, width: 260 } },
+		h('b', null, 'Start a live room'),
+		h('input', { type: 'password', autoFocus: true, placeholder: 'Room password', value: password, onChange: (e) => setPassword(e.target.value), style: css.input }),
+		h('input', { placeholder: 'Room name (optional, e.g. weekly)', value: name, onChange: (e) => setName(e.target.value), style: css.input }),
+		status && status !== 'busy' && h('div', { style: { color: 'var(--tl-color-warn, #e03131)' } }, status),
+		h('div', { style: { display: 'flex', gap: 4, justifyContent: 'flex-end' } },
+			h(Button, { label: 'Cancel', onClick: (e) => (e.preventDefault(), onCancel()) }),
+			h('button', { type: 'submit', disabled: !password || status === 'busy', style: { ...css.input, width: 'auto', cursor: 'pointer', background: 'var(--tl-color-selected)', color: 'var(--tl-color-selected-contrast)', border: 'none', fontWeight: 600 } },
+				status === 'busy' ? 'Opening…' : 'Go live')))
 }
 
 function roomUrl(id) {
@@ -94,12 +137,15 @@ export function LiveBar({ deck }) {
 	const presenting = useValue(presentIndex) >= 0
 	const people = useValue('collaborators', () => editor.getCollaborators().length + 1, [editor])
 	const [copied, setCopied] = useState(false)
+	const [asking, setAsking] = useState(false)
 	if (presenting || !SYNC_URL) return null
 
 	const bar = { ...css.panel, position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, padding: 3, zIndex: 300 }
 	if (!roomId) {
 		return h('div', { ...guard(editor), style: bar },
-			h(Button, { label: '● Go live', title: 'Start a live room: share the link and everyone sees the same slides, laser and highlights', onClick: () => (location.href = roomUrl(newRoomId())) }))
+			asking
+				? h(GoLiveForm, { editor, onCancel: () => setAsking(false) })
+				: h(Button, { label: '● Go live', title: 'Start a live room (needs the room password): share the link and everyone sees the same slides, laser and highlights', onClick: () => setAsking(true) }))
 	}
 	return h('div', { ...guard(editor), style: bar },
 		h('span', { style: { padding: '0 8px', whiteSpace: 'nowrap' } },
@@ -114,6 +160,19 @@ export function LiveBar({ deck }) {
 			onClick: () => confirm('Reset this room to the published deck for everyone?') && seedFromDeck(editor, deck, { reset: true }),
 		}),
 		h(Button, { label: 'Leave', onClick: () => (location.href = roomUrl(null)) }))
+}
+
+// Shown for a room link that was never opened (or a typo in the link).
+export function RoomNotFound() {
+	return (
+		<div style={{ height: '100%', display: 'grid', placeItems: 'center', fontFamily: 'system-ui, sans-serif', color: '#333', background: '#f8f9fa' }}>
+			<div style={{ textAlign: 'center', maxWidth: 360, padding: 24 }}>
+				<h2 style={{ margin: '0 0 8px' }}>Room not found</h2>
+				<p style={{ margin: '0 0 16px', color: '#666' }}>This live room hasn't been started. Check the link with the presenter.</p>
+				<a href={roomUrl(null)}>Open the presentation instead</a>
+			</div>
+		</div>
+	)
 }
 
 export function slideCount(editor) {
