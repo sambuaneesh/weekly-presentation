@@ -52,7 +52,8 @@ export class PresentTool extends StateNode {
 		presentIndex.set(-1)
 		editor.setCameraOptions(this.saved.cameraOptions)
 		editor.updateInstanceState({ isFocusMode: this.saved.focusMode })
-		if (slide) {
+		// Followers hand the camera back to the live room (which resumes following the presenter).
+		if (slide && !this.follower) {
 			editor.select(slide.id)
 			// Wait a frame so the edit UI is back before framing around it.
 			requestAnimationFrame(() => fitSlide(editor, slide.id, { animate: false }))

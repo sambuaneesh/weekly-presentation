@@ -23,11 +23,18 @@ The published deck only changes when you push.
 ## Live rooms (present to several devices)
 
 Click **● Go live** on the site, enter the room password (and optionally a room name such as
-`weekly`), then **Copy link** and share it. Only starting a room needs the password; anyone with
-the link can join. A link to a room that was never started shows "Room not found". Everyone in
-the room sees the same deck, each other's cursors, the presenter's laser and highlights. When
-someone presses **▶ Present**, everyone else follows their slides automatically (Esc stops
-following). A new room starts as a copy of the published deck; **Reset to deck** reloads it.
+`weekly`), then **Copy link** and share it.
+
+- **Presenter**: whoever started the room with the password (or used **Presenter login** in it).
+  Full editor: present, laser, highlight, edit, **Reset to deck**.
+- **Viewers**: anyone else with the link, no password needed. Read-only (the server rejects
+  their edits) and they follow the presenter: the presenter's screen while they edit, their
+  slides while they present, fitted to each viewer's screen. A viewer who pans away gets a
+  **Follow presenter** button; Esc stops following a presentation.
+- A room closes 2 minutes after the last person leaves. Its link then shows "This room isn't
+  live", with a password box to start it again. Nobody can get into an empty room without the
+  password.
+- A new room starts as a copy of the published deck.
 
 The room server runs on Cloudflare's free plan. One-time setup:
 

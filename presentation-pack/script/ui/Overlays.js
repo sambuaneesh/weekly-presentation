@@ -58,6 +58,7 @@ export function PresentOverlay() {
 	const count = useValue('slideCount', () => getSlides(editor).length, [editor])
 	const mode = useValue(annotateMode)
 	const follower = useValue('isFollower', () => editor.getCurrentToolId() === 'present' && !!editor.getCurrentTool().follower, [editor])
+	const readonly = useValue('readonly', () => editor.getIsReadonly(), [editor])
 	if (index < 0) return null
 
 	const mark = (m) => ({ background: mode === m ? 'rgba(255,255,255,0.25)' : 'transparent' })
@@ -79,10 +80,13 @@ export function PresentOverlay() {
 				onMouseEnter: (e) => (e.currentTarget.style.opacity = 1),
 				onMouseLeave: (e) => (e.currentTarget.style.opacity = 0.55),
 			},
-			h(Button, { label: 'Laser', title: 'Drag to point (everyone in a live room sees it)', style: mark('laser'), onClick: () => annotateMode.set('laser') }),
-			h(Button, { label: 'Highlight', title: 'Drag to highlight on the slide', style: mark('highlight'), onClick: () => annotateMode.set('highlight') }),
-			h(Button, { label: 'Clear', title: 'Remove highlights from this slide', onClick: () => clearAnnotations(editor) }),
-			h('div', { style: { width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(255,255,255,0.3)' } }),
+			// Read-only viewers in a live room watch; they don't annotate.
+			!readonly && [
+				h(Button, { key: 'l', label: 'Laser', title: 'Drag to point (everyone in a live room sees it)', style: mark('laser'), onClick: () => annotateMode.set('laser') }),
+				h(Button, { key: 'h', label: 'Highlight', title: 'Drag to highlight on the slide', style: mark('highlight'), onClick: () => annotateMode.set('highlight') }),
+				h(Button, { key: 'c', label: 'Clear', title: 'Remove highlights from this slide', onClick: () => clearAnnotations(editor) }),
+				h('div', { key: 's', style: { width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(255,255,255,0.3)' } }),
+			],
 			follower
 				? h('span', { style: { padding: '0 6px', whiteSpace: 'nowrap' } }, `Following presenter · ${index + 1} / ${count}`)
 				: [

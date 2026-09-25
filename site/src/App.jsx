@@ -1,68 +1,79 @@
 // The presentation pack running on the web: the same board script the desktop app runs
 // (config.js for UI + present tool, main.js for deck sync), fed by a snapshot of the deck.
-// With ?room=<name> (and a sync server configured) the deck is shared live; see live.jsx.
+// With ?room=<name> (and a sync server configured) the deck is shared live; see live.jsx:
+// presenters get the full editor, viewers a read-only view that follows the presenter.
 import { useEffect, useState } from 'react'
 import { Tldraw, inlineBase64AssetStore } from 'tldraw'
 import { useSync } from '@tldraw/sync'
 import 'tldraw/tldraw.css'
-import packConfig from '@pack/config.js'
+import packConfig, { DECK_CSS } from '@pack/config.js'
 import runPackMain from '@pack/main.js'
+import { PresentOverlay } from '@pack/ui/Overlays.js'
 import deck from './deck.json'
-import { SYNC_URL, roomId, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomExists, RoomNotFound } from './live.jsx'
+import { SYNC_URL, roomId, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomStatus, connectUri, RoomClosed } from './live.jsx'
 
 const pack = packConfig({
 	config: { shapeUtils: [], bindingUtils: [], assetUtils: [], overlayUtils: [], tools: [], components: {}, options: {} },
 })
 const PackInFront = pack.components.InFrontOfTheCanvas
-const components = { ...pack.components, InFrontOfTheCanvas: () => (<><PackInFront /><LiveBar deck={deck} /></>) }
+// Editors (solo visitors and live-room presenters): the full pack UI.
+const editorComponents = { ...pack.components, InFrontOfTheCanvas: () => (<><PackInFront /><LiveBar deck={deck} isPresenter /></>) }
+// Live-room viewers: no editing UI, just the presenting overlay and the room bar.
+const viewerComponents = {
+	InFrontOfTheCanvas: () => (<><style>{DECK_CSS}</style><PresentOverlay /><LiveBar deck={deck} isPresenter={false} /></>),
+}
 const licenseKey = import.meta.env.VITE_TLDRAW_LICENSE_KEY
 
-function mountPack(editor) {
-	const controller = new AbortController()
-	// Each browser runs the pack's deck sync; it only rewrites derived text, so it is safe in a room.
-	runPackMain({ editor, signal: controller.signal, app: { board: { isHost: true } } })
-	// Open on the first (leftmost) slide.
+function zoomToFirstSlide(editor) {
 	const first = editor
 		.getCurrentPageShapes()
 		.filter((s) => s.type === 'frame' && s.parentId === editor.getCurrentPageId())
 		.sort((a, b) => a.x - b.x || a.y - b.y)[0]
 	if (first) editor.zoomToBounds(editor.getShapePageBounds(first.id), { inset: 120 })
 	if (import.meta.env.DEV) window.editor = editor
+}
+
+function mountPack(editor) {
+	const controller = new AbortController()
+	// Keeps slide numbers and footers in step; only run by someone who can edit.
+	runPackMain({ editor, signal: controller.signal, app: { board: { isHost: true } } })
+	zoomToFirstSlide(editor)
 	return () => controller.abort()
 }
 
 function Solo() {
-	return <Tldraw snapshot={deck} tools={pack.tools} components={components} licenseKey={licenseKey} onMount={mountPack} />
+	return <Tldraw snapshot={deck} tools={pack.tools} components={editorComponents} licenseKey={licenseKey} onMount={mountPack} />
 }
 
-function Live() {
-	const store = useSync({ uri: `${SYNC_URL}/api/connect/${roomId}`, assets: inlineBase64AssetStore })
+function Live({ isPresenter }) {
+	const store = useSync({ uri: connectUri(isPresenter), assets: inlineBase64AssetStore })
 	const [editor, setEditor] = useState(null)
-	useLiveRoom(editor)
+	useLiveRoom(editor, isPresenter)
 	return (
 		<Tldraw
 			store={store}
 			tools={pack.tools}
-			components={components}
+			components={isPresenter ? editorComponents : viewerComponents}
 			licenseKey={licenseKey}
 			onMount={(editor) => {
-				// A new room starts empty: fill it from the published deck.
-				if (slideCount(editor) === 0) seedFromDeck(editor, deck)
 				setEditor(editor)
+				if (!isPresenter) return zoomToFirstSlide(editor)
+				// A new room starts empty: the presenter fills it from the published deck.
+				if (slideCount(editor) === 0) seedFromDeck(editor, deck)
 				return mountPack(editor)
 			}}
 		/>
 	)
 }
 
-// Only connect to rooms that were opened with the room password.
+// Only connect to rooms that are open (started with the room password and not yet abandoned).
 function LiveGate() {
-	const [state, setState] = useState('checking')
+	const [status, setStatus] = useState(null)
 	useEffect(() => {
-		roomExists(roomId).then((exists) => setState(exists ? 'open' : 'missing'), () => setState('missing'))
+		roomStatus(roomId).then(setStatus, () => setStatus({ exists: false }))
 	}, [])
-	if (state === 'checking') return null
-	return state === 'open' ? <Live /> : <RoomNotFound />
+	if (!status) return null
+	return status.exists ? <Live isPresenter={status.presenter} /> : <RoomClosed />
 }
 
 export default function App() {

@@ -1,7 +1,10 @@
 // From tldraw's MIT-licensed sync template (https://github.com/tldraw/tldraw-sync-cloudflare):
 // hosts one room's document and websocket sessions. Changes from the template: the env type, and
 // rooms must be opened (POST /open, which the worker only forwards after checking the room
-// password) before anyone can connect, so a random room link can't create a room.
+// password) before anyone can connect. Opening returns a presenter token: sessions that connect
+// with it can edit, everyone else is read-only. An open room closes again (and its tokens are
+// forgotten) once it has been empty for the grace period, so an old link can't be used to get
+// back into an abandoned room.
 import {
 	DurableObjectSqliteSyncWrapper,
 	type SessionStateSnapshot,
@@ -22,6 +25,10 @@ const schema = createTLSchema({
 	shapes: { ...defaultShapeSchemas },
 	// bindings: { ...defaultBindingSchemas },
 })
+
+// How long a room stays open with nobody in it (covers page reloads and brief network drops).
+// EMPTY_GRACE_SECONDS in the worker's vars overrides it (the local test uses a few seconds).
+const DEFAULT_EMPTY_GRACE_SECONDS = 120
 
 interface SocketAttachment {
 	sessionId: string
@@ -89,14 +96,37 @@ export class TldrawDurableObject extends DurableObject {
 
 	private readonly router = AutoRouter({ catch: (e) => error(e) })
 		.get('/api/connect/:roomId', (request) => this.handleConnect(request))
-		.get('/api/rooms/:roomId', async () => Response.json({ exists: await this.isOpen() }))
+		.get('/api/rooms/:roomId', async (request) =>
+			Response.json({ exists: await this.isOpen(), presenter: await this.isPresenterToken(request.query.presenter) })
+		)
 		.post('/api/rooms/:roomId/open', async () => {
-			await this.ctx.storage.put('opened', true)
-			return Response.json({ exists: true })
+			const token = crypto.randomUUID()
+			const tokens = ((await this.ctx.storage.get<string[]>('presenterTokens')) ?? []).slice(-19)
+			await this.ctx.storage.put({ opened: true, presenterTokens: [...tokens, token] })
+			// Close again if the person who opened it never actually joins.
+			await this.scheduleCloseIfEmpty()
+			return Response.json({ exists: true, token })
 		})
 
 	private isOpen() {
 		return this.ctx.storage.get('opened').then(Boolean)
+	}
+
+	private async isPresenterToken(token: unknown) {
+		if (typeof token !== 'string' || !token) return false
+		return ((await this.ctx.storage.get<string[]>('presenterTokens')) ?? []).includes(token)
+	}
+
+	private async scheduleCloseIfEmpty(leaving?: WebSocket) {
+		const others = this.ctx.getWebSockets().filter((ws) => ws !== leaving)
+		if (others.length > 0) return
+		const seconds = Number((this.env as { EMPTY_GRACE_SECONDS?: string }).EMPTY_GRACE_SECONDS) || DEFAULT_EMPTY_GRACE_SECONDS
+		await this.ctx.storage.setAlarm(Date.now() + seconds * 1000)
+	}
+
+	// Runs a grace period after the room last emptied: close it unless someone came back.
+	override async alarm() {
+		if (this.ctx.getWebSockets().length === 0) await this.ctx.storage.delete(['opened', 'presenterTokens'])
 	}
 
 	// Entry point for all requests to the Durable Object
@@ -109,6 +139,7 @@ export class TldrawDurableObject extends DurableObject {
 		const sessionId = request.query.sessionId as string
 		if (!sessionId) return error(400, 'Missing sessionId')
 		if (!(await this.isOpen())) return error(404, 'Room not found')
+		await this.ctx.storage.deleteAlarm()
 
 		// Create the websocket pair for the client
 		const { 0: clientWebSocket, 1: serverWebSocket } = new WebSocketPair()
@@ -122,7 +153,9 @@ export class TldrawDurableObject extends DurableObject {
 
 		// Connect to the room. The first webSocketMessage from the client will
 		// complete the handshake and trigger debounced snapshot storage.
-		this.getOrCreateRoom().handleSocketConnect({ sessionId, socket: serverWebSocket })
+		// Only presenters (who opened the room with the password) can change the document.
+		const isReadonly = !(await this.isPresenterToken(request.query.presenter))
+		this.getOrCreateRoom().handleSocketConnect({ sessionId, socket: serverWebSocket, isReadonly })
 
 		return new Response(null, { status: 101, webSocket: clientWebSocket })
 	}
@@ -139,10 +172,12 @@ export class TldrawDurableObject extends DurableObject {
 
 	override async webSocketClose(ws: WebSocket) {
 		this.handleWebSocketEnd(ws, 'handleSocketClose')
+		await this.scheduleCloseIfEmpty(ws)
 	}
 
 	override async webSocketError(ws: WebSocket) {
 		this.handleWebSocketEnd(ws, 'handleSocketError')
+		await this.scheduleCloseIfEmpty(ws)
 	}
 
 	private handleWebSocketEnd(ws: WebSocket, method: 'handleSocketClose' | 'handleSocketError') {

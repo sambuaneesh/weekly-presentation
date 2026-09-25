@@ -8,7 +8,7 @@ import { NotesPanel, PresentOverlay, InsertButtons } from './ui/Overlays.js'
 
 // tldraw outlines text in the canvas colour so it reads over lines; on slides (and especially dark
 // themes) that shows up as a halo, so decks turn it off.
-const DECK_CSS = `.tl-container { --tl-text-outline: none; } .tl-text__outline { text-shadow: none !important; }`
+export const DECK_CSS = `.tl-container { --tl-text-outline: none; } .tl-text__outline { text-shadow: none !important; }`
 
 /** @param {import('../.script-workspace/script-context').ConfigScriptContext} ctx */
 export default function ({ config }) {
