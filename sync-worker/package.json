@@ -1,0 +1,23 @@
+{
+	"name": "weekly-presentation-sync",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy"
+	},
+	"dependencies": {
+		"@tldraw/sync-core": "^5.4.2",
+		"@tldraw/tlschema": "^5.4.2",
+		"itty-router": "^5.0.24"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20260925.1",
+		"typescript": "^7.0.2",
+		"wrangler": "^4.139.0"
+	},
+	"allowScripts": {
+		"esbuild@0.28.1": true,
+		"workerd@1.20260923.1": true
+	}
+}

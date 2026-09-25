@@ -1,7 +1,8 @@
 // Speaker notes drawer, the presenting overlay, and "+" insert buttons between slides on canvas.
 import { useEditor, useValue } from 'tldraw'
 import { h, css, guard, Button } from './kit.js'
-import { notesOpen, presentIndex, panelOpen, PANEL_W } from './state.js'
+import { notesOpen, presentIndex, panelOpen, PANEL_W, annotateMode } from './state.js'
+import { clearAnnotations } from './presentTool.js'
 import { goTo } from './SlidePanel.js'
 import { getSlides, getCurrentIndex, insertSlide } from '../lib/slides.js'
 import { SLIDE_GAP } from '../lib/deck.js'
@@ -55,17 +56,20 @@ export function PresentOverlay() {
 		return { l: tl.x, t: tl.y, r: br.x, b: br.y }
 	}, [editor])
 	const count = useValue('slideCount', () => getSlides(editor).length, [editor])
+	const mode = useValue(annotateMode)
+	const follower = useValue('isFollower', () => editor.getCurrentToolId() === 'present' && !!editor.getCurrentTool().follower, [editor])
 	if (index < 0) return null
 
-	const black = (style) => h('div', { style: { position: 'absolute', background: '#000', pointerEvents: 'none', ...style } })
+	const mark = (m) => ({ background: mode === m ? 'rgba(255,255,255,0.25)' : 'transparent' })
+	const black = (key, style) => h('div', { key, style: { position: 'absolute', background: '#000', pointerEvents: 'none', ...style } })
 	return h('div', { style: { position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 900 } },
 		rect && [
-			black({ key: 't', left: 0, right: 0, top: 0, height: Math.max(0, rect.t) }),
-			black({ key: 'b', left: 0, right: 0, top: rect.b, bottom: 0 }),
-			black({ key: 'l', left: 0, width: Math.max(0, rect.l), top: 0, bottom: 0 }),
-			black({ key: 'r', left: rect.r, right: 0, top: 0, bottom: 0 }),
+			black('t', { left: 0, right: 0, top: 0, height: Math.max(0, rect.t) }),
+			black('b', { left: 0, right: 0, top: rect.b, bottom: 0 }),
+			black('l', { left: 0, width: Math.max(0, rect.l), top: 0, bottom: 0 }),
+			black('r', { left: rect.r, right: 0, top: 0, bottom: 0 }),
 		],
-		h('div', { style: { position: 'absolute', left: 0, bottom: 0, height: 4, width: `${count > 1 ? (index / (count - 1)) * 100 : 100}%`, background: 'var(--tl-color-selected)', opacity: 0.8, transition: 'width 300ms' } }),
+		h('div', { style: { position: 'absolute', left: 0, bottom: 0, height: 4, width: `${count > 1 ? (index / (count - 1)) * 100 : 100}%`, background: 'var(--tl-color-selected)', opacity: 0.8 } }),
 		h('div', {
 				...guard(editor),
 				style: {
@@ -75,10 +79,18 @@ export function PresentOverlay() {
 				onMouseEnter: (e) => (e.currentTarget.style.opacity = 1),
 				onMouseLeave: (e) => (e.currentTarget.style.opacity = 0.55),
 			},
-			h(Button, { label: '‹', title: 'Previous (←)', onClick: () => editor.getCurrentTool().go?.(index - 1) }),
-			h('span', { style: { fontVariantNumeric: 'tabular-nums', padding: '0 4px' } }, `${index + 1} / ${count}`),
-			h(Button, { label: '›', title: 'Next (→ / Space / click)', onClick: () => editor.getCurrentTool().go?.(index + 1) }),
-			h(Button, { label: '✕', title: 'Exit presentation (Esc)', onClick: () => editor.setCurrentTool('select') })))
+			h(Button, { label: 'Laser', title: 'Drag to point (everyone in a live room sees it)', style: mark('laser'), onClick: () => annotateMode.set('laser') }),
+			h(Button, { label: 'Highlight', title: 'Drag to highlight on the slide', style: mark('highlight'), onClick: () => annotateMode.set('highlight') }),
+			h(Button, { label: 'Clear', title: 'Remove highlights from this slide', onClick: () => clearAnnotations(editor) }),
+			h('div', { style: { width: 1, alignSelf: 'stretch', margin: '4px 2px', background: 'rgba(255,255,255,0.3)' } }),
+			follower
+				? h('span', { style: { padding: '0 6px', whiteSpace: 'nowrap' } }, `Following presenter · ${index + 1} / ${count}`)
+				: [
+						h(Button, { key: 'p', label: '‹', title: 'Previous (←)', onClick: () => editor.getCurrentTool().go?.(index - 1) }),
+						h('span', { key: 'n', style: { fontVariantNumeric: 'tabular-nums', padding: '0 4px' } }, `${index + 1} / ${count}`),
+						h(Button, { key: 'x', label: '›', title: 'Next (→ / Space / click)', onClick: () => editor.getCurrentTool().go?.(index + 1) }),
+					],
+			h(Button, { label: '✕', title: follower ? 'Stop following (Esc)' : 'Exit presentation (Esc)', onClick: () => editor.setCurrentTool('select') })))
 }
 
 // "+" buttons in page space: before the first slide, between slides, and after the last.

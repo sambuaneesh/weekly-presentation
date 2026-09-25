@@ -1,0 +1,19 @@
+# Live sync server for the presentation site: one Durable Object per room, holding that room's
+# tldraw document and relaying edits, cursors and laser pointers between everyone in it.
+# Based on tldraw's MIT-licensed template: https://github.com/tldraw/tldraw-sync-cloudflare
+name = "weekly-presentation-sync"
+main = "src/worker.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Sites allowed to connect (comma separated). Localhost is for `npm run dev` in ../site.
+ALLOWED_ORIGINS = "https://sambuaneesh.github.io,http://localhost:5173,http://localhost:4173"
+
+[durable_objects]
+bindings = [{ name = "TLDRAW_DURABLE_OBJECT", class_name = "TldrawDurableObject" }]
+
+# SQLite-backed Durable Objects are available on the Workers free plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TldrawDurableObject"]

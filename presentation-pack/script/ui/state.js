@@ -26,6 +26,12 @@ export const notesOpen = persisted('notesOpen', false)
 export const presentIndex = atom('presentIndex', -1) // -1 when not presenting
 export const openMenu = atom('openMenu', null) // 'theme' | 'deck' | 'layouts' | null
 export const contextMenu = atom('contextMenu', null) // { index, x, y } | null
+export const annotateMode = atom('annotateMode', 'laser') // what dragging does while presenting: 'laser' | 'highlight'
+
+// Set by a host that shares the deck live (the website's rooms):
+//   { onPresent(index | null), onStopFollowing?() }
+// The present tool calls onPresent when the presenter starts, changes slide, or stops.
+export const live = atom('live', null)
 
 export const PANEL_W = 216
 export const TOP_BAR = 96

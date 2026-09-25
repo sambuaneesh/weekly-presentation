@@ -4,3 +4,6 @@ site/dist/
 site/src/deck.json
 .env
 .env.local
+# Wrangler's local state and build output
+.wrangler/
+.dev.vars
