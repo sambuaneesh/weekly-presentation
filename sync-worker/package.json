@@ -1,5 +1,5 @@
 {
-	"name": "weekly-presentation-sync",
+	"name": "presentations-sync",
 	"private": true,
 	"type": "module",
 	"scripts": {

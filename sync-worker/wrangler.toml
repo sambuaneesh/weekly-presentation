@@ -1,7 +1,7 @@
 # Live sync server for the presentation site: one Durable Object per room, holding that room's
 # tldraw document and relaying edits, cursors and laser pointers between everyone in it.
 # Based on tldraw's MIT-licensed template: https://github.com/tldraw/tldraw-sync-cloudflare
-name = "weekly-presentation-sync"
+name = "presentations-sync"
 main = "src/worker.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]

@@ -70,7 +70,7 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
 		return cors(origin, await roomStub(env, request.params.roomId).fetch(request.url, { method: 'POST' }))
 	})
 
-	.get('/', () => new Response('weekly-presentation sync server'))
+	.get('/', () => new Response('presentations sync server'))
 	.all('*', () => error(404))
 
 export default { fetch: router.fetch }

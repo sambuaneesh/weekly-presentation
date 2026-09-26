@@ -4,7 +4,7 @@ One static site on GitHub Pages holds every presentation:
 
 | Address | Shows |
 |---|---|
-| `https://sambuaneesh.github.io/weekly-presentation/` | the top folder: folders and presentations (`?all` also shows hidden ones) |
+| `https://sambuaneesh.github.io/presentations/` | the top folder: folders and presentations (`?all` also shows hidden ones) |
 | `…/#/mono2micro` | a folder |
 | `…/#/mono2micro/agentic-workflow` | one presentation: browse it, press **▶ Present** |
 | `…/?room=<name>#/<path>` | that presentation, live: everyone with the link follows the presenter |
@@ -51,7 +51,7 @@ The room server (`sync-worker/`) runs on Cloudflare's free plan and serves every
 cd sync-worker
 npm install
 npx wrangler login
-npx wrangler deploy                      # prints the URL, e.g. https://weekly-presentation-sync.<you>.workers.dev
+npx wrangler deploy                      # prints the URL, e.g. https://presentations-sync.<you>.workers.dev
 npx wrangler secret put ROOM_PASSWORD    # the password for starting rooms
 ```
 
