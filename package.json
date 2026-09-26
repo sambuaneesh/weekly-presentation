@@ -1,0 +1,11 @@
+{
+	"name": "presentations",
+	"private": true,
+	"type": "module",
+	"description": "Aneesh S's presentations: hand-drawn tldraw decks, one website.",
+	"scripts": {
+		"deck": "node bin/deck.mjs",
+		"site": "cd site && npm run dev",
+		"build": "cd site && npm run build"
+	}
+}

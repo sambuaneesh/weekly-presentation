@@ -266,6 +266,25 @@ export const LAYOUTS = {
 		name: 'Blank',
 		build: () => [bg(), ...chrome()],
 	},
+	// An animated scene (scenes/registry.js) under an editable kicker and title. `o.head` moves the
+	// heading block: [x, y, width, title scale].
+	scene: {
+		name: 'Scene',
+		hidden: true, // made by templates; not offered in the layout picker
+		build: (o) => {
+			const [hx, hy, hw, hs] = o.head ?? [M, 58, W - 2 * M, 1.45]
+			return [
+				bg(),
+				...(o.scene === null ? [] : [{ type: 'scene', x: 0, y: 0, isLocked: true, props: { w: W, h: H, scene: o.scene ?? 'title' }, meta: { role: 'scene' } }]),
+				// Real, live shapes on top of the scene (interactive slides): frame-local partials.
+				...(o.extra ?? []).map((e) => ({ ...e, meta: { role: 'interactive', ...(e.meta ?? {}) } })),
+				...(o.kicker ? [text('kicker', o.kicker, hx, hy, hw, { size: 's', scale: 1.25 })] : []),
+				...(o.title ? [text('title', o.title, hx, hy + 38, hw, { size: 'xl', scale: hs })] : []),
+				...(o.subtitle ? [text('subtitle', o.subtitle, hx, hy + 38 + 70 * hs, hw, { size: 'm', scale: 1.25 })] : []),
+				...chrome(),
+			]
+		},
+	},
 }
 
 // Shapes for one slide: a frame at (x, y) plus the layout's children, styled with theme `t`.
@@ -288,7 +307,7 @@ export function buildSlide(layoutId, { x, y, name, overrides = {}, theme }) {
 				type: 'frame',
 				x,
 				y,
-				props: { w: W, h: H, name: name ?? `00 · ${layout.name}` },
+				props: { w: W, h: H, name: name ?? `00 · ${overrides.name ?? layout.name}` },
 				meta: { layout: layoutId, notes: overrides.notes ?? '' },
 			},
 			...children,

@@ -1,4 +1,5 @@
 // Deck templates: an ordered list of layouts (with optional starter text) to seed a new deck.
+import { fromExtensions } from '../extensions.js'
 
 export const TEMPLATES = {
 	'weekly-update': {
@@ -25,4 +26,6 @@ export const TEMPLATES = {
 		name: 'Blank deck',
 		slides: [{ layout: 'title' }, { layout: 'content' }, { layout: 'closing' }],
 	},
+	// Templates that decks bring along (decks/<slug>/ext/index.js → `templates`).
+	...fromExtensions('templates'),
 }

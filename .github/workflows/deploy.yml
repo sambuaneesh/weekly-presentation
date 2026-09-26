@@ -1,4 +1,4 @@
-# Builds the website from weekly-presentation.tldraw and publishes it to GitHub Pages on every
+# Builds the website from every deck in decks/ and publishes it to GitHub Pages on every
 # push to main. Setup (once): Settings → Pages → Source: "GitHub Actions"; under Settings → Secrets
 # and variables → Actions add the secret TLDRAW_LICENSE_KEY and, for live rooms, the variable
 # VITE_SYNC_URL (the deployed sync-worker URL).

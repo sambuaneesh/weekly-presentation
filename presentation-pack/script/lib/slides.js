@@ -208,6 +208,8 @@ export function seedTemplate(editor, templateId) {
 	if (!template) return
 	const start = getSlides(editor).length
 	editor.run(() => {
+		// A template with its own look sets the deck theme when it starts a deck.
+		if (template.theme && start === 0) updateDeck(editor, { theme: template.theme })
 		template.slides.forEach((s, i) => insertSlide(editor, start + i, s.layout, s.overrides ?? {}))
 		const title = template.slides[0]?.overrides?.title
 		if (title && start === 0) updateDeck(editor, { title })

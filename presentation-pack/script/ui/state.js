@@ -24,13 +24,17 @@ function persisted(key, fallback) {
 export const panelOpen = persisted('panelOpen', true)
 export const notesOpen = persisted('notesOpen', false)
 export const presentIndex = atom('presentIndex', -1) // -1 when not presenting
+// Build steps within the slide being presented: 0 = nothing revealed yet (see lib/beats.js).
+export const presentBeat = atom('presentBeat', 0)
+// While editing, the step a slide is previewed at ({ slideId, beat }), or null to show every step.
+export const previewBeat = atom('previewBeat', null)
 export const openMenu = atom('openMenu', null) // 'theme' | 'deck' | 'layouts' | null
 export const contextMenu = atom('contextMenu', null) // { index, x, y } | null
 export const annotateMode = atom('annotateMode', 'laser') // what dragging does while presenting: 'laser' | 'highlight'
 
 // Set by a host that shares the deck live (the website's rooms):
-//   { onPresent(index | null), onStopFollowing?() }
-// The present tool calls onPresent when the presenter starts, changes slide, or stops.
+//   { onPresent(index | null, beat?), onStopFollowing?() }
+// The present tool calls onPresent when the presenter starts, changes slide or step, or stops.
 export const live = atom('live', null)
 
 export const PANEL_W = 216

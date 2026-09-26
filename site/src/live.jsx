@@ -10,15 +10,18 @@ import { useEffect, useState } from 'react'
 import { useEditor, useValue } from 'tldraw'
 import { getDeck } from '@pack/lib/deck.js'
 import { getSlides } from '@pack/lib/slides.js'
-import { live, presentIndex } from '@pack/ui/state.js'
+import { live, presentIndex, presentBeat } from '@pack/ui/state.js'
 import { h, css, guard, Button } from '@pack/ui/kit.js'
 
 export const SYNC_URL = import.meta.env.VITE_SYNC_URL
-export const roomId = new URLSearchParams(location.search).get('room')?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || null
+export const roomId = new URLSearchParams(location.search).get('room')?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || null
+// The deck being shown (#/<slug>). Rooms belong to a deck: "weekly" in two decks is two rooms.
+export const deckSlug = decodeURIComponent(location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || '').replace(/[^a-z0-9-]/g, '') || null
+const serverRoom = (id) => `${(deckSlug ?? 'deck').slice(0, 30)}--${id}`.slice(0, 64)
 
 // ---------- presenter token (kept per room in this browser) ----------
 
-const tokenKey = (id) => `pp-presenter:${id}`
+const tokenKey = (id) => `pp-presenter:${serverRoom(id)}`
 export function presenterToken(id = roomId) {
 	try {
 		return localStorage.getItem(tokenKey(id))
@@ -37,14 +40,14 @@ function savePresenterToken(id, token) {
 // { exists, presenter }: is the room open, and is this browser's token a presenter token for it?
 export async function roomStatus(id) {
 	const token = presenterToken(id)
-	const r = await fetch(`${SYNC_URL}/api/rooms/${id}${token ? `?presenter=${encodeURIComponent(token)}` : ''}`)
+	const r = await fetch(`${SYNC_URL}/api/rooms/${serverRoom(id)}${token ? `?presenter=${encodeURIComponent(token)}` : ''}`)
 	if (!r.ok) throw new Error(`sync server: ${r.status}`)
 	return r.json()
 }
 
 // Open (or re-open) a room with the room password; makes this browser its presenter.
 async function openRoom(id, password) {
-	const r = await fetch(`${SYNC_URL}/api/rooms/${id}/open`, {
+	const r = await fetch(`${SYNC_URL}/api/rooms/${serverRoom(id)}/open`, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify({ password }),
@@ -56,7 +59,7 @@ async function openRoom(id, password) {
 
 export function connectUri(isPresenter) {
 	const token = isPresenter && presenterToken()
-	return `${SYNC_URL}/api/connect/${roomId}${token ? `?presenter=${encodeURIComponent(token)}` : ''}`
+	return `${SYNC_URL}/api/connect/${serverRoom(roomId)}${token ? `?presenter=${encodeURIComponent(token)}` : ''}`
 }
 
 function newRoomId() {
@@ -118,9 +121,9 @@ export function useLiveRoom(editor, isPresenter) {
 		if (isPresenter) {
 			writeDeckMeta(editor, { host: me })
 			live.set({
-				onPresent: (index) => {
+				onPresent: (index, beat = 0) => {
 					const current = getDeck(editor).live
-					writeDeckMeta(editor, { live: index === null ? null : { presenter: me, index, at: current?.presenter === me ? current.at : Date.now() } })
+					writeDeckMeta(editor, { live: index === null ? null : { presenter: me, index, beat, at: current?.presenter === me ? current.at : Date.now() } })
 				},
 			})
 			return () => live.set(null)
@@ -143,10 +146,10 @@ export function useLiveRoom(editor, isPresenter) {
 					// Our own switch from viewport-follow to slide-follow, not the viewer opting out.
 					ownChange = true
 					editor.stopFollowingUser()
-					editor.setCurrentTool('present', { startIndex: state.index, follower: true })
+					editor.setCurrentTool('present', { startIndex: state.index, startBeat: state.beat ?? 0, follower: true })
 					ownChange = false
 				}
-				else if (presentIndex.get() !== state.index) editor.getCurrentTool().followTo(state.index)
+				else if (presentIndex.get() !== state.index || presentBeat.get() !== (state.beat ?? 0)) editor.getCurrentTool().followTo(state.index, state.beat ?? 0)
 				return
 			}
 			if (followingSlides) editor.setCurrentTool('select')
@@ -190,7 +193,7 @@ function PasswordForm({ title, submitLabel, onDone, onCancel, withName }) {
 	const [status, setStatus] = useState(null) // null | 'busy' | error message
 	const submit = async (e) => {
 		e.preventDefault()
-		const id = withName ? name.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || newRoomId() : roomId
+		const id = withName ? name.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || newRoomId() : roomId
 		setStatus('busy')
 		try {
 			await openRoom(id, password)

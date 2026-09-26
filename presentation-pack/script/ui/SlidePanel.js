@@ -181,7 +181,7 @@ function LayoutPicker({ editor, anchorBottom }) {
 		Popover,
 		{ editor, style: { left: PANEL_W + 8, bottom: anchorBottom, width: 250, maxHeight: '70vh', overflowY: 'auto' } },
 		section('Layouts'),
-		...Object.entries(LAYOUTS).map(([id, l]) => h(MenuItem, { key: id, label: l.name, hint: l.hint, onClick: pick(() => insertSlide(editor, at(), id)) })),
+		...Object.entries(LAYOUTS).filter(([, l]) => !l.hidden).map(([id, l]) => h(MenuItem, { key: id, label: l.name, hint: l.hint, onClick: pick(() => insertSlide(editor, at(), id)) })),
 		saved.length > 0 && section('Saved in this deck'),
 		...saved.map((l) => h('div', { key: l.id, style: { display: 'flex' } },
 			h('div', { style: { flex: 1 } }, h(MenuItem, { label: l.name, onClick: pick(() => insertFromContent(editor, at(), l.content)) })),

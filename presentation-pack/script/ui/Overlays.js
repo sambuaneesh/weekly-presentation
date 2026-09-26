@@ -1,7 +1,8 @@
 // Speaker notes drawer, the presenting overlay, and "+" insert buttons between slides on canvas.
 import { useEditor, useValue } from 'tldraw'
 import { h, css, guard, Button } from './kit.js'
-import { notesOpen, presentIndex, panelOpen, PANEL_W, annotateMode } from './state.js'
+import { notesOpen, presentIndex, presentBeat, previewBeat, panelOpen, PANEL_W, annotateMode } from './state.js'
+import { slideBeats } from '../lib/beats.js'
 import { clearAnnotations } from './presentTool.js'
 import { goTo } from './SlidePanel.js'
 import { getSlides, getCurrentIndex, insertSlide } from '../lib/slides.js'
@@ -42,6 +43,48 @@ export function NotesPanel() {
 			: h('div', { style: css.muted }, 'No slide selected.'))
 }
 
+// Entrance animations ("on twos") for shapes revealed by build steps, on the slide being shown.
+// meta.anim picks one; every shape with meta.beat (or meta.anim) on the shown slide gets it.
+const ANIMS = {
+	pop: 'gr-pop 420ms steps(5, end) both',
+	wipe: 'gr-wipe 700ms steps(8, end) both',
+	drop: 'gr-drop 520ms steps(6, end) both',
+	wiggle: 'gr-wiggle 700ms steps(8, end) both',
+	fade: 'gr-fadein 600ms steps(6, end) both',
+	// Comes out of the screen at the audience, then pokes three times.
+	zoom: 'gr-zoom 900ms steps(9, end) both, gr-poke 600ms steps(4, end) 1100ms 3',
+}
+export const BEAT_CSS = `
+/* Individual transform properties (scale/rotate/translate) compose with a shape's own transform. */
+@keyframes gr-pop { 0% { opacity: 0; scale: 0.7; rotate: -3deg } 60% { opacity: 1; scale: 1.06; rotate: 1deg } 100% { scale: 1; rotate: 0deg } }
+@keyframes gr-wipe { 0% { clip-path: inset(-100% 100% -100% -100%) } 99% { clip-path: inset(-100% -100% -100% -100%) } 100% { clip-path: none } }
+@keyframes gr-drop { 0% { opacity: 0; translate: 0 -40px } 70% { opacity: 1; translate: 0 6px } 100% { translate: 0 0 } }
+@keyframes gr-wiggle { 0%, 100% { rotate: 0deg } 20% { rotate: -4deg } 40% { rotate: 3deg } 60% { rotate: -2deg } 80% { rotate: 1deg } }
+@keyframes gr-fadein { 0% { opacity: 0 } 100% { opacity: 1 } }
+@keyframes gr-zoom { 0% { opacity: 0; scale: 0.12 } 55% { opacity: 1; scale: 1.35 } 78% { scale: 0.94 } 100% { scale: 1 } }
+@keyframes gr-poke { 0%, 100% { scale: 1 } 50% { scale: 1.08 } }
+`
+export function BeatStyles() {
+	const editor = useEditor()
+	const css = useValue('beatCss', () => {
+		const i = presentIndex.get()
+		const p = previewBeat.get()
+		const slide = i >= 0 ? getSlides(editor)[i] : p ? editor.getShape(p.slideId) : null
+		if (!slide) return ''
+		let out = ''
+		for (const id of editor.getShapeAndDescendantIds([slide.id])) {
+			const s = editor.getShape(id)
+			if (!s || (typeof s.meta?.beat !== 'number' && !s.meta?.anim)) continue
+			const anim = ANIMS[s.meta.anim ?? 'pop']
+			// A shared origin (frame-local) makes a multi-shape drawing scale about one point.
+			const o = Array.isArray(s.meta.origin) ? `transform-origin: ${s.meta.origin[0] - s.x}px ${s.meta.origin[1] - s.y}px;` : ''
+			if (anim) out += `[data-shape-id="${id}"] > * { animation: ${anim}; ${o} }\n`
+		}
+		return out
+	}, [editor])
+	return h('style', null, css)
+}
+
 // While presenting: black letterbox around the slide, a progress bar, and a counter with exit.
 export function PresentOverlay() {
 	const editor = useEditor()
@@ -56,6 +99,11 @@ export function PresentOverlay() {
 		return { l: tl.x, t: tl.y, r: br.x, b: br.y }
 	}, [editor])
 	const count = useValue('slideCount', () => getSlides(editor).length, [editor])
+	const beat = useValue(presentBeat)
+	const beats = useValue('presentBeats', () => {
+		const slide = getSlides(editor)[presentIndex.get()]
+		return slide ? slideBeats(editor, slide.id) : 0
+	}, [editor])
 	const mode = useValue(annotateMode)
 	const follower = useValue('isFollower', () => editor.getCurrentToolId() === 'present' && !!editor.getCurrentTool().follower, [editor])
 	const readonly = useValue('readonly', () => editor.getIsReadonly(), [editor])
@@ -70,7 +118,7 @@ export function PresentOverlay() {
 			black('l', { left: 0, width: Math.max(0, rect.l), top: 0, bottom: 0 }),
 			black('r', { left: rect.r, right: 0, top: 0, bottom: 0 }),
 		],
-		h('div', { style: { position: 'absolute', left: 0, bottom: 0, height: 4, width: `${count > 1 ? (index / (count - 1)) * 100 : 100}%`, background: 'var(--tl-color-selected)', opacity: 0.8 } }),
+		h('div', { style: { position: 'absolute', left: 0, bottom: 0, height: 4, width: `${count > 1 ? Math.min(1, (index + (beats ? beat / (beats + 1) : 0)) / (count - 1)) * 100 : 100}%`, background: 'var(--tl-color-selected)', opacity: 0.8 } }),
 		h('div', {
 				...guard(editor),
 				style: {
@@ -90,9 +138,9 @@ export function PresentOverlay() {
 			follower
 				? h('span', { style: { padding: '0 6px', whiteSpace: 'nowrap' } }, `Following presenter · ${index + 1} / ${count}`)
 				: [
-						h(Button, { key: 'p', label: '‹', title: 'Previous (←)', onClick: () => editor.getCurrentTool().go?.(index - 1) }),
-						h('span', { key: 'n', style: { fontVariantNumeric: 'tabular-nums', padding: '0 4px' } }, `${index + 1} / ${count}`),
-						h(Button, { key: 'x', label: '›', title: 'Next (→ / Space / click)', onClick: () => editor.getCurrentTool().go?.(index + 1) }),
+						h(Button, { key: 'p', label: '‹', title: 'Previous (←)', onClick: () => editor.getCurrentTool().prev?.() }),
+						h('span', { key: 'n', style: { fontVariantNumeric: 'tabular-nums', padding: '0 4px' } }, `${index + 1} / ${count}`, beats > 0 && h('span', { style: { opacity: 0.6 } }, ` · ${beat}/${beats}`)),
+						h(Button, { key: 'x', label: '›', title: 'Next (→ / Space / click)', onClick: () => editor.getCurrentTool().next?.() }),
 					],
 			h(Button, { label: '✕', title: follower ? 'Stop following (Esc)' : 'Exit presentation (Esc)', onClick: () => editor.setCurrentTool('select') })))
 }

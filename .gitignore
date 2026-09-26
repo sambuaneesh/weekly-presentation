@@ -1,6 +1,7 @@
 node_modules/
 site/dist/
-# Generated from weekly-presentation.tldraw at build time
+# Generated from decks/ at build time (deck export)
+site/public/decks/
 site/src/deck.json
 .env
 .env.local

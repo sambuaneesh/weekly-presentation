@@ -1,76 +1,51 @@
-# Weekly presentation
+# Presentations
 
-Slide decks built in tldraw Desktop with a reusable presentation pack, and published as a website
-on GitHub Pages.
+My personal space for presentations: hand-drawn decks made in [tldraw Desktop](https://tldraw.dev),
+kept in one repository, published together on one website.
+
+- **One template.** Every deck uses the same presentation pack (`presentation-pack/`): slide panel,
+  build steps, presenting, speaker notes, the hand-drawn "ink & safelight" look.
+- **One folder per deck.** `decks/<slug>/` holds the deck, its metadata, and (optionally) the code
+  that draws its slides or adds its own animations.
+- **One website.** A gallery of every deck on GitHub Pages; each deck has its own link, and any deck
+  can be presented live to other devices.
+- **Agent-first.** One command line tool, `bin/deck.mjs`, does everything; an agent can make, build,
+  check and publish a deck with it. See [AGENTS.md](AGENTS.md).
+
+## Quick start
+
+```bash
+node bin/deck.mjs list                                   # what's here
+node bin/deck.mjs new "My next talk" --tags research     # make decks/my-next-talk/ and open it
+node bin/deck.mjs build my-next-talk                     # after editing its slides/*.js
+node bin/deck.mjs cover my-next-talk                     # the gallery picture
+git add decks/my-next-talk && git commit -m "Add my next talk" && git push   # it's on the website
+```
+
+(`npm run deck -- <command>` works too.) tldraw Desktop must be installed; the tool opens it when needed.
+
+## Where things are
 
 | Path | What it is |
 |---|---|
-| `weekly-presentation.tldraw` | The deck. Edit it in tldraw Desktop. |
-| `presentation-pack/` | The slide builder: panel, layouts, themes, notes, present mode, plus CLI tools. See its [README](presentation-pack/README.md). |
-| `site/` | The website: the same pack running on the tldraw SDK, loading the deck. |
-| `sync-worker/` | Live-room server (Cloudflare Worker + Durable Objects) for shared presenting. |
-| `.github/workflows/deploy.yml` | Builds `site/` and publishes it to GitHub Pages on every push to `main`. |
+| `decks/<slug>/` | One presentation: `<slug>.tldraw`, `deck.json`, optional `slides/`, `ext/`, `cover.jpg` |
+| `bin/deck.mjs` | The tool: `new · list · open · install · build · cover · check · export` |
+| `presentation-pack/` | The shared template (a tldraw board script) and its builders. [README](presentation-pack/README.md) |
+| `site/` | The website: the gallery and a player for every deck |
+| `sync-worker/` | The live-room server (Cloudflare Worker), shared by all decks |
+| `docs/` | The guides below |
+| `AGENTS.md` | How an AI agent should work in this repo |
 
-## Updating the website
+## Guides
 
-1. Edit the deck in tldraw Desktop and save.
-2. `git add weekly-presentation.tldraw && git commit -m "Update deck" && git push`
-3. GitHub rebuilds and republishes the site in about a minute (see the repo's **Actions** tab).
+- [Making and managing presentations](docs/presentations.md): new decks, editing, hiding, pinning, renaming, deleting
+- [Drawing slides with code](docs/drawing-slides.md): the hand-drawn kit, build steps, interactive slides, speaker notes
+- [Extending](docs/extending.md): a deck's own scenes and actions, templates, themes, the pack
+- [The website](docs/website.md): links, publishing on GitHub Pages, live rooms, running it locally
 
-Changes made by visitors on the website stay in their own browser tab and are gone on reload.
-The published deck only changes when you push.
+## Decks
 
-## Live rooms (present to several devices)
-
-Click **● Go live** on the site, enter the room password (and optionally a room name such as
-`weekly`), then **Copy link** and share it.
-
-- **Presenter**: whoever started the room with the password (or used **Presenter login** in it).
-  Full editor: present, laser, highlight, edit, **Reset to deck**.
-- **Viewers**: anyone else with the link, no password needed. Read-only (the server rejects
-  their edits) and they follow the presenter: the presenter's screen while they edit, their
-  slides while they present, fitted to each viewer's screen. A viewer who pans away gets a
-  **Follow presenter** button; Esc stops following a presentation.
-- A room closes 2 minutes after the last person leaves. Its link then shows "This room isn't
-  live", with a password box to start it again. Nobody can get into an empty room without the
-  password.
-- A new room starts as a copy of the published deck.
-
-The room server runs on Cloudflare's free plan. One-time setup:
-
-```bash
-cd sync-worker
-npm install
-npx wrangler login      # opens the browser to sign in to Cloudflare
-npx wrangler deploy     # prints the URL, e.g. https://weekly-presentation-sync.<you>.workers.dev
-npx wrangler secret put ROOM_PASSWORD   # the password for starting rooms (prompts for it)
-```
-
-Change the password any time by running `npx wrangler secret put ROOM_PASSWORD` again. Rooms that
-are already open stay open. Until the secret is set, no new rooms can be started.
-
-Then add that URL as the repository **variable** `VITE_SYNC_URL` (Settings → Secrets and
-variables → Actions → Variables) and re-run the deploy. The server only accepts connections from
-the origins in `sync-worker/wrangler.toml` (`ALLOWED_ORIGINS`). Redeploy the worker after changing
-it. Images pasted inside a room are stored inline in the room, since there is no upload storage.
-
-## Running the site locally
-
-```bash
-cd site
-npm install
-npm run dev        # exports the deck, then serves at http://localhost:5173
-```
-
-For live rooms locally, put `ROOM_PASSWORD=<anything>` in `sync-worker/.dev.vars` (gitignored),
-run `npx wrangler dev --port 8799` in `sync-worker/`, and start the site
-with `VITE_SYNC_URL=http://localhost:8799 npm run dev`.
-
-`npm run build` writes the static site to `site/dist/`. The export needs Node 22.13 or newer.
-
-## Licence key
-
-The tldraw SDK needs a licence key on a public site. This project uses the free **hobby** licence
-(non-commercial, shows a "made with tldraw" watermark). The key goes in the repository secret
-`TLDRAW_LICENSE_KEY`. For local production builds, put it in `site/.env.local` (see
-`site/.env.example`).
+| Deck | What |
+|---|---|
+| [`seeing-is-fixing`](decks/seeing-is-fixing) | Huang et al., *Seeing is Fixing* (arXiv 2506.16136), 43 hand-drawn slides, two interactive |
+| [`agentic-workflow`](decks/agentic-workflow) | An agentic monolith-to-microservice workflow, traced live on one real run |

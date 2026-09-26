@@ -1,9 +1,9 @@
 {
-	"name": "weekly-presentation-site",
+	"name": "presentations-site",
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"export": "node scripts/export-deck.mjs ../weekly-presentation.tldraw src/deck.json",
+		"export": "node scripts/export-decks.mjs",
 		"dev": "npm run export && vite",
 		"build": "npm run export && vite build",
 		"preview": "vite preview"

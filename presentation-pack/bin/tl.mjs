@@ -4,7 +4,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 
-function serverJsonPath() {
+export function serverJsonPath() {
 	const home = os.homedir()
 	if (process.platform === 'darwin') return path.join(home, 'Library/Application Support/tldraw/server.json')
 	if (process.platform === 'win32') return path.join(process.env.APPDATA ?? home, 'tldraw/server.json')

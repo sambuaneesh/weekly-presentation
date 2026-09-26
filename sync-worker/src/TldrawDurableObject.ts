@@ -13,17 +13,19 @@ import {
 } from '@tldraw/sync-core'
 import {
 	createTLSchema,
-	// defaultBindingSchemas,
+	defaultBindingSchemas,
 	defaultShapeSchemas,
 	TLRecord,
 } from '@tldraw/tlschema'
+import { T } from '@tldraw/validate'
 import { DurableObject } from 'cloudflare:workers'
 import { AutoRouter, error, IRequest } from 'itty-router'
 
 // add custom shapes and bindings here if needed:
 const schema = createTLSchema({
-	shapes: { ...defaultShapeSchemas },
-	// bindings: { ...defaultBindingSchemas },
+	// `scene`: the presentation pack's animated scenes (presentation-pack/script/scenes/SceneShapeUtil.js).
+	shapes: { ...defaultShapeSchemas, scene: { props: { w: T.number, h: T.number, scene: T.string } } },
+	bindings: { ...defaultBindingSchemas },
 })
 
 // How long a room stays open with nobody in it (covers page reloads and brief network drops).

@@ -10,6 +10,10 @@ export const THEMES = {
 	editorial: { name: 'Editorial', bg: 'white', text: 'black', muted: 'grey', accent: 'red', font: 'serif', titleFont: 'serif' },
 	sketch: { name: 'Sketch', bg: 'white', text: 'black', muted: 'grey', accent: 'orange', font: 'draw', titleFont: 'draw' },
 	violet: { name: 'Violet', bg: 'white', text: 'black', muted: 'grey', accent: 'violet', font: 'sans', titleFont: 'serif' },
+	// Seeing is Fixing, hand-drawn: ink on warm paper with one safelight red.
+	ink: { name: 'Ink & safelight', bg: 'yellow', bgFill: 'semi', text: 'black', muted: 'grey', accent: 'red', font: 'draw', titleFont: 'draw' },
+	// Seeing is Fixing: prints developing under a red safelight.
+	darkroom: { name: 'Darkroom', bg: 'black', text: 'white', muted: 'grey', accent: 'red', font: 'serif', titleFont: 'serif' },
 	terminal: { name: 'Terminal', bg: 'black', text: 'light-green', muted: 'grey', accent: 'green', font: 'mono', titleFont: 'mono' },
 }
 
@@ -25,7 +29,7 @@ export function roleProps(role, t, shape) {
 	const tone = shape?.meta?.tone
 	switch (role) {
 		case 'bg':
-			return { color: t.bg, fill: 'fill', dash: 'solid' }
+			return { color: t.bg, fill: t.bgFill ?? 'fill', dash: 'solid' }
 		case 'title':
 		case 'quote':
 			return { color: t.text, font: t.titleFont }
