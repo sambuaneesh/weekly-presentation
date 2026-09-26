@@ -5,10 +5,10 @@ Two places to put new things:
 - **A deck's `ext/` folder**: code only that deck needs (an animated scene, actions for its
   interactive slides, a template). It travels with the deck and never touches the others.
 - **The pack (`presentation-pack/`)**: things every deck should get (a new kit call, a new entrance
-  animation, a theme, a UI feature). Change it once; run `deck install <slug>` on each deck to update
+  animation, a theme, a UI feature). Change it once; run `deck install <deck>` on each deck to update
   its copy.
 
-## A deck's extension (`decks/<slug>/ext/`)
+## A deck's extension (`decks/…/<deck>/ext/`)
 
 `ext/index.js` default-exports any of:
 
@@ -29,7 +29,7 @@ export default {
   website resolves them with a Vite alias.
 - **Other imports**: `tldraw` and `react` work everywhere. Files are plain ES modules (no JSX, no
   npm packages beyond those two).
-- **Put it into the deck**: `node bin/deck.mjs install <slug>`. The website picks up every deck's
+- **Put it into the deck**: `node bin/deck.mjs install <deck>`. The website picks up every deck's
   `ext/` automatically at build time.
 
 ### Scenes
@@ -38,7 +38,7 @@ A scene is an animated drawing written as a React component (with `htm`), render
 `scene` shape. It gets `{ b, still, frozen }`: the build step being shown (Infinity while editing),
 whether to skip entrance animation, and whether to skip ambient motion (thumbnails). Its `beats` count
 is how many clicks it animates through. The kit is `presentation-pack/script/scenes/kit.js`. Example:
-`decks/agentic-workflow/ext/agentic.js`, laid out by the `agentic-workflow` template in its
+`decks/mono2micro/agentic-workflow/ext/agentic.js`, laid out by the `agentic-workflow` template in its
 `agenticDeck.js`.
 
 Prefer native, code-drawn slides ([drawing-slides.md](drawing-slides.md)) for the hand-made look.
@@ -49,12 +49,12 @@ places across many steps.
 
 The functions interactive slides call (see [drawing-slides.md](drawing-slides.md#interactive-slides)).
 They run inside one `editor.run` with shape locks ignored. They change shapes (props, x/y, meta), so
-live-room viewers see the result. Example: `decks/seeing-is-fixing/ext/ablation.js`.
+live-room viewers see the result. Example: `decks/weekly-presentations/seeing-is-fixing/ext/ablation.js`.
 
 ### Templates
 
-A template seeds a new canvas deck from layouts: `deck new "…" --kind canvas --template my-template`.
-Slides are `{ layout, overrides }`; the `scene` layout places a scene under an editable kicker and
+A template seeds slides from layouts: in an empty deck the slide panel offers every template, and
+**Layouts ▾** lists them too. Slides are `{ layout, overrides }`; the `scene` layout places a scene under an editable kicker and
 title (see `presentation-pack/script/lib/layouts.js`).
 
 ### New shape types
@@ -75,5 +75,5 @@ server's schema, so also add the type's props to `sync-worker/src/TldrawDurableO
 | built-in actions | `script/lib/actions/index.js` |
 | starter slides for `deck new` | `paper/starter/` (`{{TITLE_JSON}}` etc. are filled in) |
 
-After changing the pack: `deck install <slug>` for each deck you want updated. The website always
+After changing the pack: `deck install <deck>` for each deck you want updated. The website always
 uses the current pack. The [pack README](../presentation-pack/README.md) describes its internals.

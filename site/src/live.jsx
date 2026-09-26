@@ -15,9 +15,11 @@ import { h, css, guard, Button } from '@pack/ui/kit.js'
 
 export const SYNC_URL = import.meta.env.VITE_SYNC_URL
 export const roomId = new URLSearchParams(location.search).get('room')?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || null
-// The deck being shown (#/<slug>). Rooms belong to a deck: "weekly" in two decks is two rooms.
-export const deckSlug = decodeURIComponent(location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || '').replace(/[^a-z0-9-]/g, '') || null
-const serverRoom = (id) => `${(deckSlug ?? 'deck').slice(0, 30)}--${id}`.slice(0, 64)
+// The page being shown: #/<path>, a folder or a deck (e.g. mono2micro/agentic-workflow).
+// Rooms belong to a deck: "weekly" in two decks is two rooms.
+export const hashPath = () => decodeURIComponent(location.hash.replace(/^#\/?/, '').split('?')[0]).replace(/[^a-z0-9/-]/g, '').replace(/^\/+|\/+$/g, '')
+export const deckSlug = hashPath() || null
+const serverRoom = (id) => `${(deckSlug ?? 'deck').replace(/\//g, '_').slice(-30)}--${id}`.slice(0, 64)
 
 // ---------- presenter token (kept per room in this browser) ----------
 

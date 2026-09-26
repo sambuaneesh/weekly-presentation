@@ -10,17 +10,27 @@ details.
 Everything goes through `node bin/deck.mjs` (run from the repo root):
 
 ```
-deck list [--json]                 decks, newest first (slug, title, flags)
-deck new "<title>" [options]       make decks/<slug>/, create + open the .tldraw, build starter slides, save a cover
+deck list [--json]                 the tree of folders and decks
+deck new "<title>" [--in <folder>] [--description "…"] [--name <name>]
+                                   make a deck from the starter (3 hand-drawn slides); no tldraw needed
+deck folder <path> [--title "…"]   make a folder
+deck move <deck|folder> <folder>   move it ("." is the top); refuses while it's open in tldraw
 deck open <deck>                   open in tldraw Desktop (launches it if needed)
 deck install <deck>                copy the pack (+ the deck's ext/) into the deck's board script
-deck build <deck> [--only a,b]     draw code slides (decks/<slug>/slides) into the deck, save
-deck cover <deck>                  save slide 1 as decks/<slug>/cover.jpg
-deck check [<deck>]                validate deck folders and slide files (run before committing)
-deck export                        export all decks for the website (site/public/decks)
+deck build <deck> [--only a,b]     draw code slides (<deck>/slides) into the deck, save
+deck cover <deck>                  save slide 1 as <deck>/cover.jpg
+deck check [<deck>]                validate decks and slide files (run before committing)
+deck export                        export the tree for the website (site/public/decks)
 ```
 
-`<deck>` is a slug or any unique part of one. tldraw Desktop must be installed. The tool talks to it
+The user also has a local web UI for the same operations, `npm run studio`
+(`studio/server.mjs`, a JSON API over `decks/` and `bin/deck.mjs`, plus git). Keep the two in step:
+a new command or deck.json field should appear in both.
+
+Decks live in folders under `decks/` (a folder with `deck.json` is a deck; others are folders with an
+optional `folder.json` title). `<deck>` is a deck's path (`mono2micro/agentic-workflow`) or any unique
+part of it. deck.json is deliberately minimal: `title`, optional `description`, `listed`; don't add
+tags, dates or other fields to the UI. tldraw Desktop must be installed. The tool talks to it
 through its local API (`~/.config/tldraw/server.json`); see the tldraw-offline skill for that API when
 you need screenshots or `/exec`.
 
@@ -43,17 +53,17 @@ If unsure, leave it out.
 
 ## Making a new presentation
 
-1. `node bin/deck.mjs new "<Title>" --subtitle "…" --tags a,b --description "…"` (kind `handmade`).
+1. `node bin/deck.mjs new "<Title>" --in <folder> --description "…"` (ask which folder if unclear).
 2. Plan the arc: one idea per slide, a title slide, a thank-you slide. Write the outline as the
-   manifest (`decks/<slug>/slides/manifest.json`), then one file per slide
-   (`docs/drawing-slides.md` has the kit API and a full example; `decks/seeing-is-fixing/slides/`
+   manifest (`decks/…/<deck>/slides/manifest.json`), then one file per slide
+   (`docs/drawing-slides.md` has the kit API and a full example; `decks/weekly-presentations/seeing-is-fixing/slides/`
    has 43 real ones to learn from).
 3. Every slide gets speaker notes in the checklist format (`COVER` / `CLICKS` or `DO` / `REF`).
-4. `node bin/deck.mjs build <slug>`, then **look**: screenshot each slide
+4. `node bin/deck.mjs build <deck>`, then **look**: screenshot each slide
    (`api.getScreenshot(docId, { bounds: frame bounds })` via the tldraw API), fix overlaps and
    clipping, rebuild with `--only`. Check at least a few click steps by presenting
    (`editor.setCurrentTool('present', { startIndex, startBeat })`).
-5. `node bin/deck.mjs cover <slug>`, `node bin/deck.mjs check <slug>`.
+5. `node bin/deck.mjs cover <deck>`, `node bin/deck.mjs check <deck>`.
 6. Commit the deck folder when the user asks, then push. That publishes it.
 
 Large decks parallelise well: slide files are independent. Give each helper its own range of files
@@ -61,11 +71,11 @@ and its own copy of the repo or deck to test in; never let two agents build into
 
 ## Changing things
 
-- A deck's slides: edit `decks/<slug>/slides/*.js`, `deck build <slug> --only <files>`.
+- A deck's slides: edit `decks/…/<deck>/slides/*.js`, `deck build <deck> --only <files>`.
 - Hand-drawn (non-code) slides live only in the `.tldraw` file: edit them in tldraw (via `/exec` if
   asked). `deck build` never touches them.
-- Deck-specific code (animated scenes, interactive-slide actions, templates): `decks/<slug>/ext/`,
-  then `deck install <slug>`. See `docs/extending.md`.
+- Deck-specific code (animated scenes, interactive-slide actions, templates): `decks/…/<deck>/ext/`,
+  then `deck install <deck>`. See `docs/extending.md`.
 - Something every deck should have: the pack (`presentation-pack/`), then `deck install` each deck.
 - A new shape type needs the live-room schema too (`sync-worker/src/TldrawDurableObject.ts`) and a
   worker redeploy (ask first: it's outward-facing).
@@ -88,7 +98,10 @@ and its own copy of the repo or deck to test in; never let two agents build into
 | Path | Purpose |
 |---|---|
 | `bin/deck.mjs` | the tool |
-| `decks/<slug>/` | `<slug>.tldraw`, `deck.json`, `slides/`, `ext/`, `cover.jpg` |
+| `studio/` | the local web UI (`server.mjs` API + `public/` page) |
+| `decks/…/<name>/` | a deck: `<name>.tldraw`, `deck.json`, `slides/`, `ext/`, `cover.jpg` (in folders with `folder.json`) |
+| `bin/lib/tldraw-file.mjs` | read/write .tldraw files without the app (export, stamping new decks) |
+| `presentation-pack/paper/starter.tldraw` | the file every new deck is copied from ({{TITLE}}/{{PRESENTER}} filled in) |
 | `presentation-pack/script/` | the template's board script (UI, presenting, themes, layouts, scenes kit, actions) |
 | `presentation-pack/paper/kit.exec.js` | the kit code-drawn slides use |
 | `presentation-pack/paper/starter/` | starter slides for `deck new` |

@@ -1,93 +1,100 @@
-# Making and managing presentations
+# Making and organising presentations
 
-Every presentation is a folder in `decks/`. The folder name is the deck's **slug**: its id for the
-tool, its web address (`…/#/<slug>`) and its file name. Use lowercase letters, digits and dashes.
+`decks/` is a tree of folders, like a file browser. Any folder can hold presentations and more
+folders. The website shows the same tree: `…/#/mono2micro` is a folder, and
+`…/#/mono2micro/agentic-workflow` is a presentation in it.
 
 ```
-decks/my-next-talk/
-  my-next-talk.tldraw     the deck (open it in tldraw Desktop)
-  deck.json               title, date, tags… (what the website shows)
-  cover.jpg               the gallery picture (made by `deck cover`)
-  slides/                 optional: slides drawn from code (manifest.json + one .js per slide)
-  ext/                    optional: this deck's own scenes/actions/templates (docs/extending.md)
+decks/
+  mono2micro/                      a folder (folder.json: its title)
+    folder.json
+    agentic-workflow/              a presentation
+      agentic-workflow.tldraw      the deck: open it in tldraw Desktop
+      deck.json                    { "title", "description", "listed" }
+      cover.jpg                    the picture on its card (optional)
+      slides/                      optional: slides drawn from code
+      ext/                         optional: its own scenes/actions (docs/extending.md)
+  weekly-presentations/
+    folder.json
+    seeing-is-fixing/
+      …
 ```
 
-All commands below are `node bin/deck.mjs …` (or `npm run deck -- …`). A deck can be named by its
-slug or any unique part of it (`deck build seeing` works).
+Names in paths (folders and presentations) are lowercase letters, digits and dashes; titles can be
+anything.
 
-## Make a new presentation
+## The studio (the easy way)
 
 ```bash
-node bin/deck.mjs new "Title of the talk" --subtitle "one line" --tags paper,agents
+npm run studio          # http://localhost:4321/ (only this machine can reach it)
 ```
 
-This makes `decks/title-of-the-talk/`, writes `deck.json`, creates the `.tldraw` file with the pack
-installed, and opens it in tldraw Desktop. Two kinds:
+Browse the folders; the trail at the top goes back up.
 
-- `--kind handmade` (default): the slides are drawn from code in `slides/`, starting from three starter
-  slides (title, one idea, thank you). Edit the files, then `deck build <slug>`. This is the house
-  style: see [drawing-slides.md](drawing-slides.md).
-- `--kind canvas`: an empty deck you draw by hand in tldraw (slide panel, **+ New slide**, layouts).
-  `--template <id>` starts from a pack template, e.g. `weekly-update`.
+| To… | In the studio |
+|---|---|
+| make a presentation | **+ presentation**: a title (and a description if you like). It is made in the folder you're in, already drawn with three hand-drawn starter slides. tldraw doesn't need to be open. |
+| draw it | open the `.tldraw` file shown on its card in tldraw Desktop (**copy** gives the path) |
+| make a folder | **+ folder** |
+| change the title or description, hide it from the website, or rename its link | **edit** |
+| set the card picture | **cover**, or drop an image onto the card |
+| see it as the website will | **view** (starts the website preview on :5173) |
+| move it into another folder | **move** |
+| delete it | **delete** (type its name to confirm) |
+| rename, move or delete a folder | the buttons on the folder |
+| publish | **Save to GitHub**: commit, then push |
 
-Other options: `--slug`, `--date YYYY-MM-DD` (default today), `--presenter` (default Aneesh S),
-`--description`, `--theme` (default `ink`).
+Moving, renaming or deleting refuses while that presentation is open in tldraw: close it first
+(tldraw would keep saving to the old place).
 
-You can mix both kinds: in a handmade deck, draw extra slides by hand anywhere; `deck build` only
-replaces the slides that come from `slides/`.
+## The command line
 
-## Edit a presentation
+Everything the studio does is also a command (`node bin/deck.mjs …` or `npm run deck -- …`):
 
-- **Open it**: `deck open <slug>` (or open the `.tldraw` file in tldraw Desktop).
-- **Change code-drawn slides**: edit `decks/<slug>/slides/*.js`, then `deck build <slug>` (all) or
-  `deck build <slug> --only 05-results` (one). Rebuilding replaces just those slides, in place.
-- **Add a code-drawn slide**: add `slides/NN-name.js` and put `"NN-name"` in `slides/manifest.json`
-  where it belongs; the manifest order is the slide order.
-- **Draw by hand**: anything you draw in tldraw is kept. To make it appear on a click while
-  presenting, select it and use **Appears: …** in the top bar.
-- **Speaker notes**: **Notes** in the top bar, or the `notes` field of a slide file.
-- **After changing the pack or `ext/`**: `deck install <slug>` updates the deck's copy of the template.
-- Save in tldraw (the tool saves after building). Then commit.
+```bash
+deck list                                   # the tree
+deck new "Title" --in mono2micro            # make a presentation in a folder (tldraw not needed)
+deck new "Title" --in talks --description "one line" --name short-name
+deck folder weekly-presentations --title "Weekly presentations"
+deck move weekly-presentations/seeing-is-fixing talks     # "." is the top
+deck open seeing-is-fixing                  # open it in tldraw
+deck build seeing-is-fixing                 # redraw its code slides (slides/)
+deck cover seeing-is-fixing                 # save slide 1 as its cover (needs tldraw)
+deck check                                  # validate everything
+```
+
+A presentation can be named by its path or any unique part of it (`deck build seeing` works).
+
+## Editing a presentation
+
+- **Draw by hand**: open its `.tldraw` in tldraw Desktop and draw. The slide panel, **+ New slide**
+  and layouts all work; **Appears: …** in the top bar makes a selection appear on a click.
+- **Draw with code** (the hand-drawn house style, or when an agent builds the slides): edit
+  `slides/*.js`, list them in `slides/manifest.json`, run `deck build <deck>` (tldraw opens it).
+  Rebuilding replaces only the code-drawn slides. See [drawing-slides.md](drawing-slides.md).
+- **Speaker notes**: **Notes** in tldraw's top bar, or the `notes` of a slide file.
+- Save in tldraw before you commit: the website is built from the saved file.
 
 ## Present
 
-In tldraw Desktop or on the website: **▶ Present** (or **From here**). → / Space / click go forward
-through each slide's build steps, then to the next slide; ← goes back; Esc exits. Drag for a laser
-pointer. On interactive slides, click the controls and drag the pieces.
+In tldraw Desktop or on the website: **▶ Present**. → / Space / click step through each slide's
+reveals, then the next slide; ← goes back; Esc exits; drag for a laser pointer.
 
-## Manage
+## The files
 
-| To… | Do this |
-|---|---|
-| see everything | `deck list` (add `--json` for scripts) |
-| check that all decks are well-formed | `deck check` (or `deck check <slug>`) |
-| refresh the gallery picture | `deck cover <slug>` (uses the first slide) |
-| hide a deck from the gallery (link still works) | `"listed": false` in `deck.json` |
-| keep a deck at the top | `"pinned": true` in `deck.json` |
-| change the title, date, tags, description | edit `deck.json` |
-| rename a deck | close it in tldraw, rename the folder **and** its `.tldraw` file to the new slug, `deck install <new>`, commit. Old links stop working. |
-| delete a deck | close it in tldraw, `git rm -r decks/<slug>`, commit |
-| retire a deck but keep it | `"listed": false`, or move it to `decks/_archive/` (folders starting with `_` are ignored) |
-
-## deck.json
+`deck.json`:
 
 ```json
-{
-	"title": "Seeing is Fixing",
-	"subtitle": "Cross-modal reasoning with multimodal LLMs for visual software issue fixing",
-	"date": "2026-09-24",
-	"presenter": "Aneesh S",
-	"description": "One or two sentences for the gallery card.",
-	"tags": ["paper", "program repair"],
-	"source": "arXiv 2506.16136",
-	"listed": true,
-	"pinned": false
-}
+{ "title": "Seeing is Fixing", "description": "One line for the card (optional).", "listed": true }
 ```
 
-Only `title` is required. The gallery sorts pinned decks first, then newest `date` first.
+`"listed": false` hides it from the website's folders (its link still works; `?all` shows it).
+`deck new` also records a `date`, used only to sort newest first.
+
+`folder.json`: `{ "title": "Weekly presentations", "description": "" }`. It also keeps an empty
+folder in git.
 
 ## Publish
 
-Commit the deck folder and push to `main`. GitHub Actions exports every deck and rebuilds the site
-(about a minute). See [website.md](website.md).
+Commit and push to `main` (the studio's **Save to GitHub**, or git). GitHub Actions exports the whole
+tree and rebuilds the site in about a minute. See [website.md](website.md).

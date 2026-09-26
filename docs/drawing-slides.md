@@ -5,13 +5,13 @@ shapes**: sketchy boxes, pen strokes, bound arrows, sticky notes and handwriting
 hand, and after building you can still move, restyle or delete any of them like any drawing.
 
 ```
-decks/<slug>/slides/
+decks/…/<deck>/slides/
   manifest.json        ["01-title", "02-the-problem", …]   the order of the slides
   01-title.js          one file per slide
   02-the-problem.js
 ```
 
-`node bin/deck.mjs build <slug>` draws them all into the open deck. `--only 02-the-problem`
+`node bin/deck.mjs build <deck>` draws them all into the open deck. `--only 02-the-problem`
 rebuilds just one. Each build replaces that slide's earlier build and leaves every other slide alone.
 
 ## The style (keep it)
@@ -98,8 +98,8 @@ Real shapes can be controls while presenting (everyone in a live room sees the r
 Actions live in the deck's `ext/` (see [extending.md](extending.md)). Each is
 `(editor, { shape, slot, slide, find }) => void`, where `find(tag)` returns a shape on the same slide.
 The built-in `reset` action puts every shape with `meta.home` back (and restores `meta.homeProps`).
-Examples: `decks/seeing-is-fixing/slides/26-drop-to-render.js` and `32-two-switches.js`, with
-their actions in `decks/seeing-is-fixing/ext/`.
+Examples: `decks/weekly-presentations/seeing-is-fixing/slides/26-drop-to-render.js` and `32-two-switches.js`, with
+their actions in `decks/weekly-presentations/seeing-is-fixing/ext/`.
 
 ## Speaker notes
 
@@ -118,6 +118,6 @@ Interactive slides use `DO` (what to press or drag) instead of `CLICKS`.
 
 ## Check your work
 
-- `node bin/deck.mjs check <slug>` catches missing files, broken slide files and slides without notes.
+- `node bin/deck.mjs check <deck>` catches missing files, broken slide files and slides without notes.
 - Look at every slide once at its final state and present through the clicks. Agents do this with
   screenshots through the tldraw Desktop API (see [AGENTS.md](../AGENTS.md)).

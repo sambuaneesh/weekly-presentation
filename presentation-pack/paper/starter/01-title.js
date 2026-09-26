@@ -5,7 +5,6 @@ export default {
 	draw(k) {
 		k.text(160, 330, {{TITLE_JSON}}, { size: 'xl', scale: 2.4 })
 		k.underline(170, 510, 820, { color: 'red' })
-		k.text(166, 570, {{SUBTITLE_JSON}}, { size: 'l', scale: 1.1, color: 'grey' })
 		k.text(166, 830, 'presented by', { size: 'm', scale: 1.1, color: 'grey' })
 		k.text(166, 864, {{PRESENTER_JSON}}, { size: 'xl', scale: 1.1 })
 		// one small doodle: a light bulb that switches on with the first click

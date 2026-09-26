@@ -4,9 +4,10 @@ One static site on GitHub Pages holds every presentation:
 
 | Address | Shows |
 |---|---|
-| `https://sambuaneesh.github.io/weekly-presentation/` | the gallery of every listed deck (`?all` also shows unlisted ones) |
-| `…/#/<slug>` | one deck: browse it, press **▶ Present** |
-| `…/?room=<name>#/<slug>` | that deck, live: everyone with the link follows the presenter |
+| `https://sambuaneesh.github.io/weekly-presentation/` | the top folder: folders and presentations (`?all` also shows hidden ones) |
+| `…/#/mono2micro` | a folder |
+| `…/#/mono2micro/agentic-workflow` | one presentation: browse it, press **▶ Present** |
+| `…/?room=<name>#/<path>` | that presentation, live: everyone with the link follows the presenter |
 
 (The address follows the GitHub repository's name. If you rename the repository, the site moves with it.)
 
@@ -18,9 +19,9 @@ when you push.
 ## Publishing
 
 Push to `main`. The workflow `.github/workflows/deploy.yml` runs `site`'s `npm run build`, which
-exports every `decks/<slug>/` (the `.tldraw` file, `deck.json`, `cover.jpg`) with
+exports the whole `decks/` tree (each `.tldraw` file, `deck.json`, `folder.json`, cover) with
 `site/scripts/export-decks.mjs`, builds the site, and publishes it. It takes about a minute (see the
-repository's **Actions** tab). Nothing needs registering: a new folder in `decks/` is a new card.
+repository's **Actions** tab). Nothing needs registering: whatever is in `decks/` is on the site, in the same folders.
 
 One-time repository setup (already done for this repo): Settings → Pages → Source: **GitHub Actions**;
 the secret `TLDRAW_LICENSE_KEY`; for live rooms, the variable `VITE_SYNC_URL`.
@@ -82,7 +83,7 @@ For local production builds, put it in `site/.env.local` (see `site/.env.example
 
 | Want | Where |
 |---|---|
-| the gallery page | `site/src/Gallery.jsx` (`VITE_SITE_OWNER` sets the name shown) |
+| the folder pages | `site/src/Gallery.jsx` (`VITE_SITE_OWNER` sets the name shown) |
 | routes, the deck player, the back link | `site/src/App.jsx` |
 | live rooms | `site/src/live.jsx` |
 | what gets exported per deck | `site/scripts/export-decks.mjs` |

@@ -1,7 +1,8 @@
 // The presentations website. Routes (hash-based, so it works on GitHub Pages without a server):
-//   #/                  the gallery of every deck (Gallery.jsx, from decks/index.json)
-//   #/<slug>            one deck, running the same presentation pack the desktop app runs
-//   ?room=<name>#/<slug>  that deck, shared live through the sync server (live.jsx)
+//   #/                        the top folder: folders and decks (Gallery.jsx, from decks/index.json)
+//   #/<folder>                a folder, e.g. #/mono2micro
+//   #/<folder>/<deck>         a deck, running the same presentation pack the desktop app runs
+//   ?room=<name>#/<deck path> that deck, shared live through the sync server (live.jsx)
 // Decks are exported at build time (scripts/export-decks.mjs) to public/decks/<slug>.json and
 // loaded on demand, so adding a deck never makes the others slower.
 import { useEffect, useMemo, useState } from 'react'
@@ -12,7 +13,7 @@ import packConfig, { DECK_CSS, getShapeVisibility } from '@pack/config.js'
 import runPackMain from '@pack/main.js'
 import { PresentOverlay, BeatStyles } from '@pack/ui/Overlays.js'
 import { presentIndex } from '@pack/ui/state.js'
-import { SYNC_URL, roomId, deckSlug, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomStatus, connectUri, RoomClosed } from './live.jsx'
+import { SYNC_URL, roomId, hashPath, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomStatus, connectUri, RoomClosed } from './live.jsx'
 import { Gallery, NotFound, Loading } from './Gallery.jsx'
 
 const pack = packConfig({
@@ -23,13 +24,14 @@ const PackInFront = pack.components.InFrontOfTheCanvas
 const syncShapeUtils = [...defaultShapeUtils, ...pack.shapeUtils]
 const licenseKey = import.meta.env.VITE_TLDRAW_LICENSE_KEY
 
-// "← all presentations", out of the way while presenting.
+// "← back" to the deck's folder, out of the way while presenting.
 function BackLink() {
 	const presenting = useValue(presentIndex) >= 0
 	if (presenting) return null
+	const folder = hashPath().split('/').slice(0, -1).join('/')
 	return (
-		<a href="#/" className="pp-back" onPointerDown={(e) => e.stopPropagation()}>
-			← all presentations
+		<a href={`#/${folder}`} className="pp-back" onPointerDown={(e) => e.stopPropagation()}>
+			← {folder ? folder.split('/').pop().replace(/-/g, ' ') : 'all presentations'}
 		</a>
 	)
 }
@@ -103,38 +105,46 @@ function LiveGate({ deck }) {
 	return status.exists ? <Live deck={deck} isPresenter={status.presenter} /> : <RoomClosed />
 }
 
-function DeckView({ slug }) {
+function DeckView({ entry }) {
 	const [state, setState] = useState({ deck: null, error: null })
 	useEffect(() => {
 		let gone = false
-		fetch(`decks/${slug}.json`)
-			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status === 404 ? 'not found' : `HTTP ${r.status}`))))
+		document.title = `${entry.title} · presentations`
+		fetch(`decks/${entry.path}.json`)
+			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
 			.then((deck) => !gone && setState({ deck, error: null }), (error) => !gone && setState({ deck: null, error }))
-		fetch('decks/index.json')
-			.then((r) => r.json())
-			.then((ix) => {
-				const d = ix.decks.find((d) => d.slug === slug)
-				if (d && !gone) document.title = `${d.title} · presentations`
-			})
-			.catch(() => {})
 		return () => void (gone = true)
-	}, [slug])
-	if (state.error) return <NotFound slug={slug} />
+	}, [entry.path])
+	if (state.error) return <NotFound path={entry.path} />
 	if (!state.deck) return <Loading />
 	return roomId && SYNC_URL ? <LiveGate deck={state.deck} /> : <Solo deck={state.deck} />
 }
 
 export default function App() {
-	// Moving between the gallery and a deck reloads: each deck (and live room) starts clean.
+	const [index, setIndex] = useState(null)
+	const [route, setRoute] = useState(hashPath)
 	useEffect(() => {
-		const onHash = () => location.reload()
+		fetch('decks/index.json').then((r) => r.json()).then(setIndex, () => setIndex({ folders: [], decks: [] }))
+	}, [])
+	const deckAt = (p) => index?.decks.find((d) => d.path === p)
+	// Between folders, just re-render. Into or out of a deck, reload: each deck (and room) starts clean.
+	useEffect(() => {
+		const onHash = () => {
+			const next = hashPath()
+			if (deckAt(route) || deckAt(next)) location.reload()
+			else setRoute(next)
+		}
 		window.addEventListener('hashchange', onHash)
 		return () => window.removeEventListener('hashchange', onHash)
-	}, [])
-	if (!deckSlug) return <Gallery />
-	return (
-		<div style={{ position: 'fixed', inset: 0 }}>
-			<DeckView slug={deckSlug} />
-		</div>
-	)
+	}, [index, route])
+	if (!index) return <Loading />
+	const deck = deckAt(route)
+	if (deck)
+		return (
+			<div style={{ position: 'fixed', inset: 0 }}>
+				<DeckView entry={deck} />
+			</div>
+		)
+	if (route && !index.folders.some((f) => f.path === route)) return <NotFound path={route} />
+	return <Gallery index={index} folder={route} />
 }

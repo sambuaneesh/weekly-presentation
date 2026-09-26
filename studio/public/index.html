@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Studio · presentations</title>
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%23d64533'/></svg>" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;700&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<header class="top">
+			<div>
+				<div class="trail" id="trail"></div>
+				<svg class="pen" viewBox="0 0 300 8" preserveAspectRatio="none"><path d="M0 4 Q 75 1 150 5 T 300 3" stroke="#d64533" stroke-width="4" fill="none" stroke-linecap="round" /></svg>
+				<p class="sub">studio · organise here, draw in tldraw, push when ready</p>
+			</div>
+			<div class="status" id="status"></div>
+		</header>
+
+		<section class="bar">
+			<button class="btn red" id="new-deck">+ presentation</button>
+			<button class="btn" id="new-folder">+ folder</button>
+			<button class="btn" id="site-btn">preview website ↗</button>
+		</section>
+
+		<main id="grid" class="grid"></main>
+
+		<section class="panel" id="git"></section>
+
+		<dialog id="dlg"></dialog>
+		<script type="module" src="app.js"></script>
+	</body>
+</html>

@@ -1,9 +1,0 @@
-{
-	"title": "Agentic workflow · live trace",
-	"subtitle": "Agentic LLM workflows for monolith-to-microservice decomposition",
-	"date": "2026-09-26",
-	"presenter": "Aneesh S",
-	"description": "One real run (Spring PetClinic) traced agent by agent: classes travel from the inventory into capabilities, services, and refinements.",
-	"tags": ["research", "agents", "microservices"],
-	"listed": true
-}
