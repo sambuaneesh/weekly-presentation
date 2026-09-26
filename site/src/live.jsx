@@ -12,6 +12,7 @@ import { getDeck } from '@pack/lib/deck.js'
 import { getSlides } from '@pack/lib/slides.js'
 import { live, presentIndex, presentBeat } from '@pack/ui/state.js'
 import { h, css, guard, Button } from '@pack/ui/kit.js'
+import { ensureJoinSlide } from './joinSlide.js'
 
 export const SYNC_URL = import.meta.env.VITE_SYNC_URL
 export const roomId = new URLSearchParams(location.search).get('room')?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || null
@@ -68,7 +69,7 @@ function newRoomId() {
 	return crypto.getRandomValues(new Uint32Array(2)).reduce((a, n) => a + n.toString(36), '').slice(0, 10)
 }
 
-function roomUrl(id) {
+export function roomUrl(id) {
 	const url = new URL(location.href)
 	if (id) url.searchParams.set('room', id)
 	else url.searchParams.delete('room')
@@ -251,7 +252,11 @@ export function LiveBar({ deck, isPresenter }) {
 			h(Button, {
 				label: 'Reset to deck',
 				title: 'Replace this room with the published deck (removes highlights and edits made here)',
-				onClick: () => confirm('Reset this room to the published deck for everyone?') && seedFromDeck(editor, deck, { reset: true }),
+				onClick: () => {
+					if (!confirm('Reset this room to the published deck for everyone?')) return
+					seedFromDeck(editor, deck, { reset: true })
+					ensureJoinSlide(editor, roomUrl(roomId))
+				},
 			}),
 			h(Button, { label: 'Leave', onClick: () => (location.href = roomUrl(null)) }))
 	}

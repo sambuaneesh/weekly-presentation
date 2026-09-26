@@ -68,7 +68,12 @@ export function syncDeck(editor) {
 	const footer = footerText(deck)
 	const slides = getSlides(editor)
 	const updates = []
-	slides.forEach((slide, i) => {
+	// A live room's join slide (meta.joinSlide) sits in front of the deck but isn't numbered, so the
+	// deck's own slides keep their numbers.
+	let count = 0
+	slides.forEach((slide) => {
+		if (slide.meta?.joinSlide) return
+		const i = count++
 		const n = String(i + 1).padStart(2, '0')
 		const name = slide.props.name ?? ''
 		if (NUMBERED.test(name)) {

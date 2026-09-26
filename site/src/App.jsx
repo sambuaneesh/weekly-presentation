@@ -13,7 +13,8 @@ import packConfig, { DECK_CSS, getShapeVisibility } from '@pack/config.js'
 import runPackMain from '@pack/main.js'
 import { PresentOverlay, BeatStyles } from '@pack/ui/Overlays.js'
 import { presentIndex } from '@pack/ui/state.js'
-import { SYNC_URL, roomId, hashPath, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomStatus, connectUri, RoomClosed } from './live.jsx'
+import { SYNC_URL, roomId, hashPath, seedFromDeck, useLiveRoom, LiveBar, slideCount, roomStatus, connectUri, RoomClosed, roomUrl } from './live.jsx'
+import { ensureJoinSlide, hasJoinSlide } from './joinSlide.js'
 import { Gallery, NotFound, Loading } from './Gallery.jsx'
 
 const pack = packConfig({
@@ -87,8 +88,10 @@ function Live({ deck, isPresenter }) {
 			onMount={(editor) => {
 				setEditor(editor)
 				if (!isPresenter) return zoomToFirstSlide(editor)
-				// A new room starts empty: the presenter fills it from the published deck.
+				// A new room starts empty: the presenter fills it from the published deck, then puts the
+				// join slide (a QR code of this room's link) in front of it.
 				if (slideCount(editor) === 0) seedFromDeck(editor, deck)
+				if (!hasJoinSlide(editor)) ensureJoinSlide(editor, roomUrl(roomId))
 				return mountPack(editor)
 			}}
 		/>

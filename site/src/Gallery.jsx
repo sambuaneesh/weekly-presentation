@@ -3,7 +3,7 @@
 // Hidden decks ("listed": false) aren't shown but still open by their link; ?all shows them.
 import { useEffect, useState } from 'react'
 
-const OWNER = import.meta.env.VITE_SITE_OWNER || 'Aneesh S'
+const OWNER = import.meta.env.VITE_SITE_OWNER || 'Aneesh'
 const showAll = new URLSearchParams(location.search).has('all')
 
 const CSS = `
@@ -117,7 +117,7 @@ export function Gallery({ index, folder = '' }) {
 						))}
 					</div>
 					<PenLine />
-					<p className="g-by">{here?.description || `by ${OWNER} · drawn by hand in tldraw`}</p>
+					<p className="g-by">{here?.description || `by ${OWNER} · powered by tldraw`}</p>
 				</header>
 				{subfolders.length + decks.length === 0 ? (
 					<div className="g-empty">nothing here yet.</div>

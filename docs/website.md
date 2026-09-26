@@ -37,6 +37,9 @@ Open a deck, click **● Go live**, enter the room password (and optionally a ro
   edits) and they follow the presenter: the presenter's screen while they edit, their slide *and
   build step* while they present, fitted to each viewer's screen. A viewer who pans away gets a
   **Follow presenter** button; Esc stops following.
+- **A join slide comes first**: in a room, the deck gets an extra slide 0 with a big QR code of the
+  room's link (and the link written out), so people in the room can scan it and follow along. It
+  exists only in the room, never in the published deck, and doesn't change the deck's slide numbers.
 - **Rooms belong to a deck**: `?room=weekly` on two different decks is two separate rooms.
 - A room starts as a copy of the published deck, and closes 2 minutes after the last person leaves.
   Its link then shows "This room isn't live", with a password box to start it again.
